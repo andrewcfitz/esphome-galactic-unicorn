@@ -37,4 +37,13 @@ display:
     id: unicorn_display
     update_interval: 33ms
     lambda: |-
-      it.print(0, 0, id(sign_font), Color(255, 180, 0), "hi");
+      id(sign_text)->draw(it);
+
+text:
+  - platform: galactic_unicorn
+    id: sign_text
+    name: "Sign Text"
+    font: sign_font
+    color: [255, 180, 0]
+    scroll_speed: 20
+    scroll_gap: 12
