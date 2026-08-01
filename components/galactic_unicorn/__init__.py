@@ -17,7 +17,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_BRIGHTNESS, default=0.5): cv.float_range(min=0.0, max=1.0),
         }
     ).extend(cv.COMPONENT_SCHEMA),
-    cv.only_on(["rp2040"]),
+    cv.only_on_rp2,
 )
 
 
