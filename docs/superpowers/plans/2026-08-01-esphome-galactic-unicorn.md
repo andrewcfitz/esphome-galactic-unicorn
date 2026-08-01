@@ -427,9 +427,24 @@ bool GalacticUnicornPanel::init() {
 
   // Claim a state machine on either PIO block. This is the single most
   // important deviation from Pimoroni's driver, which hardcodes pio0.
-  if (!pio_claim_free_sm_and_add_program(&galactic_unicorn_program, &this->pio_, &this->sm_, &this->offset_)) {
-    return false;
+  //
+  // arduino-pico ships pico-sdk 1.5.1, which has no
+  // pio_claim_free_sm_and_add_program (that arrived in SDK 2.0), so the
+  // cross-PIO search is done by hand. Check pio_can_add_program BEFORE
+  // claiming a state machine, so a PIO with free SMs but no instruction
+  // room does not leak a claimed SM.
+  bool claimed = false;
+  for (uint i = 0; i < NUM_PIOS && !claimed; i++) {
+    PIO candidate = (i == 0) ? pio0 : pio1;
+    if (!pio_can_add_program(candidate, &galactic_unicorn_program)) continue;
+    int sm = pio_claim_unused_sm(candidate, false);
+    if (sm < 0) continue;
+    this->pio_ = candidate;
+    this->sm_ = (uint) sm;
+    this->offset_ = pio_add_program(candidate, &galactic_unicorn_program);
+    claimed = true;
   }
+  if (!claimed) return false;
   this->claimed_pio_index = pio_get_index(this->pio_);
   this->claimed_sm = (int) this->sm_;
 

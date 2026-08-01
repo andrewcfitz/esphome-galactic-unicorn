@@ -89,8 +89,13 @@ The PIO program is assembled ahead of time with `pioasm` and the generated
 instruction array committed as `gu_pio.h`. This is standard practice for shipped
 components and avoids requiring `pioasm` in the ESPHome build environment.
 
-Resource claiming must use `pio_claim_free_sm_and_add_program()` rather than
-hardcoding `pio0`. See Risks.
+Resource claiming must search both PIO blocks rather than hardcoding `pio0`.
+See Risks.
+
+Note discovered during implementation: arduino-pico ships pico-sdk 1.5.1, and
+the convenient `pio_claim_free_sm_and_add_program()` only arrived in SDK 2.0.
+The search is therefore written out by hand using `pio_can_add_program()`,
+`pio_claim_unused_sm(pio, false)`, and `pio_add_program()`.
 
 ### Layer 2: GalacticUnicornDisplay
 
@@ -221,9 +226,8 @@ Hardware-in-the-loop CI is not realistic, so verification splits three ways.
 **PIO contention is the go/no-go risk.** The Pico W's CYW43439 wireless chip is
 driven over PIO by the arduino-pico core. Pimoroni's driver hardcodes `pio0`. If
 WiFi has already claimed the resources we need, the component cannot work as
-designed. Mitigation is to claim resources dynamically with
-`pio_claim_free_sm_and_add_program()`, and to verify this first, before any other
-work. If both PIO blocks turn out to be contested, the project stops and we
+designed. Mitigation is to claim resources dynamically across both PIO blocks,
+and to verify this first, before any other work. If both PIO blocks turn out to be contested, the project stops and we
 reconsider the approach rather than discovering the problem late.
 
 **ESPHome rp2040 display and API interaction.** There is a reported issue where
