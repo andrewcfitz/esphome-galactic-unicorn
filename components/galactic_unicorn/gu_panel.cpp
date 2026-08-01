@@ -72,6 +72,7 @@ bool GalacticUnicornPanel::init() {
     if (this->dma_channel_ >= 0) dma_channel_unclaim(this->dma_channel_);
     if (this->dma_ctrl_channel_ >= 0) dma_channel_unclaim(this->dma_ctrl_channel_);
     pio_sm_unclaim(this->pio_, this->sm_);
+    pio_remove_program(this->pio_, &galactic_unicorn_program, this->offset_);
     return false;
   }
 
