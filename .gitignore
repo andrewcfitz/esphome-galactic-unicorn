@@ -3,3 +3,6 @@ __pycache__/
 .venv/
 .esphome/
 tests/build/
+example/secrets.yaml
+example/.esphome/
+example/build/
