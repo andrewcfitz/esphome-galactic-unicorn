@@ -24,10 +24,13 @@ void GalacticUnicornDisplay::draw_absolute_pixel_internal(int x, int y, Color co
 void GalacticUnicornDisplay::update() {
   if (this->hub_ == nullptr || this->hub_->is_failed()) return;
 
-  // Clear, run the user's (or generated) drawing lambda, then blit. The panel
-  // has no staging buffer: set_pixel writes straight into the live DMA
-  // bitstream, so a torn frame is the worst case, never a blank one.
-  memset(this->rgb_, 0, BUFFER_LENGTH);
+  // Clear (unless the user disabled auto_clear_enabled), run the user's (or
+  // generated) drawing lambda, then blit. The panel has no staging buffer:
+  // set_pixel writes straight into the live DMA bitstream, so a torn frame
+  // is the worst case, never a blank one.
+  if (this->auto_clear_enabled_) {
+    memset(this->rgb_, 0, BUFFER_LENGTH);
+  }
   this->do_update_();
 
   for (int y = 0; y < GalacticUnicornPanel::HEIGHT; y++) {

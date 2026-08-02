@@ -56,7 +56,10 @@ void GalacticUnicornText::draw(display::Display &it) {
   // bearing), so subtract it to land the ink where compute_scroll intended.
   it.print(pos.primary - x_offset, y, this->font_, this->color_, display::TextAlign::TOP_LEFT,
            this->value_.c_str());
-  if (pos.has_secondary) {
+  // The wrap-around copy only needs drawing once it could actually be
+  // visible; skip the rasterisation work entirely while it is still off
+  // the right edge of the panel.
+  if (pos.has_secondary && pos.secondary < panel_width) {
     it.print(pos.secondary - x_offset, y, this->font_, this->color_, display::TextAlign::TOP_LEFT,
              this->value_.c_str());
   }

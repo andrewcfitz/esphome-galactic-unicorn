@@ -6,6 +6,8 @@ An ESPHome external component that drives the [Pimoroni Galactic Unicorn](https:
 
 *(photo of the panel running goes here)*
 
+> **Status: not yet hardware-verified.** This component compiles and passes CI (host unit tests, config validation, a full firmware build), but nothing in this repo has run on a physical Galactic Unicorn yet. The [Hardware smoke test checklist](#hardware-smoke-test-checklist) below is exactly the verification that's still outstanding. Treat it as unverified until someone checks every item on real hardware.
+
 ## What this supports
 
 - Pimoroni **Galactic Unicorn**, 53x11 RGB LED matrix.
@@ -17,9 +19,19 @@ An ESPHome external component that drives the [Pimoroni Galactic Unicorn](https:
 - The **Cosmic Unicorn** and **Stellar Unicorn** variants.
 - The board's buttons, light sensor, and I2S speaker. This component only drives the LED matrix.
 
-The panel's GPIO pins are fixed by the hardware and are not configurable in YAML.
+The panel's GPIO pins are fixed by the hardware and are not configurable in YAML. This component claims them at startup; nothing in ESPHome stops you from also wiring an `i2c:`, `spi:`, or `GPIOPin` config onto the same pins, and doing so causes silent corruption of the panel output rather than a config-time error. **Do not use any of the following pins for anything else:**
+
+| Function | GPIO |
+|---|---|
+| Column clock (PIO sideset) | 13 |
+| Column data | 14 |
+| Latch | 15 |
+| Blank | 16 |
+| Row select, bits 0 to 3 | 17, 18, 19, 20 |
 
 ## Quick start
+
+This section uses the `github://` external component source, which works from any directory: you don't need a clone of this repo, just an ESPHome install. (If you're running the smoke-test checklist below, or otherwise working from a clone of this repo, see that section instead: the example configs there use a local path and need one extra step.)
 
 Generate an API encryption key (any base64-encoded 32-byte string works; ESPHome can generate one for you when you first run `esphome config` on a fresh device, or you can run `esphome secrets` tooling of your choice). Then create `secrets.yaml` next to your config:
 
@@ -81,7 +93,7 @@ text:
     scroll_gap: 12
 ```
 
-For the first flash, hold BOOTSEL while plugging in the board, then copy the compiled `.uf2` file to the `RPI-RP2` drive that appears. Every flash after that goes over OTA, so `esphome run` is enough.
+For the first flash, build with `esphome compile <your-config>.yaml`, hold BOOTSEL while plugging in the board, then copy the produced `.uf2` file to the `RPI-RP2` drive that appears. It lands at `<your-config-dir>/.esphome/build/<node-name>/.pioenvs/<node-name>/firmware.uf2`, where `<node-name>` is the `esphome.name` value in your config (for the config above, `galactic-unicorn`). Every flash after that goes over OTA, so `esphome run` is enough.
 
 ## Configuration reference
 
@@ -147,6 +159,17 @@ display:
 
 Nothing here is covered by CI. Automated tests run on GitHub's runners, which do not have a Galactic Unicorn attached, so **every item below must be checked by hand on real hardware** before trusting a change.
 
+The example configs in this section (`example/pio-smoke-test.yaml` and `example/galactic-unicorn.yaml`) use a local `external_components` path (`../components`), so they only work from a clone of this repo, not from a bare `esphome` install:
+
+```sh
+git clone https://github.com/andrewcfitz/esphome-galactic-unicorn.git
+cd esphome-galactic-unicorn/example
+cp secrets.yaml.example secrets.yaml
+# edit secrets.yaml: fill in your WiFi SSID/password and an API encryption key
+```
+
+Both example configs read from that same `example/secrets.yaml`.
+
 ### PIO/DMA driver and WiFi coexistence
 
 Flash `example/pio-smoke-test.yaml` and check, in this order:
@@ -156,6 +179,8 @@ Flash `example/pio-smoke-test.yaml` and check, in this order:
 3. The `dump_config` output reports which PIO block was claimed, for example `PIO: pio1 sm0`.
 
 If setup instead logs `Could not claim a PIO state machine`, see Troubleshooting below.
+
+For the first flash, build with `esphome compile example/pio-smoke-test.yaml`, hold BOOTSEL while plugging in the board, then copy `example/.esphome/build/galactic-unicorn-smoke/.pioenvs/galactic-unicorn-smoke/firmware.uf2` to the `RPI-RP2` drive that appears. Every flash after that goes over OTA, so `esphome run example/pio-smoke-test.yaml` is enough.
 
 ### Scrolling text platform
 
@@ -170,9 +195,19 @@ Flash `example/galactic-unicorn.yaml` and check:
 
 ## Troubleshooting
 
-**`Could not claim a PIO state machine`.** The RP2040 has two PIO blocks with four state machines each. This component claims one for the LED matrix; ESPHome's WiFi driver on the Pico W also needs PIO resources and claims first during boot. If you see this message, the WiFi driver got there before the panel driver and took the resources this component needed. There's no configuration workaround; it's a known hardware constraint of sharing PIO between WiFi and the display driver.
+**`Could not claim a PIO state machine`.** The RP2040 has two PIO blocks with four state machines each. This component searches across both blocks for a free state machine, and the Pico W's WiFi driver (cyw43) only claims one state machine and around 15 instruction words on one PIO block, so on a stock config there's plenty of room left for the panel driver and this failure is close to unreachable. It is not an expected outcome; if you do see this message, something unusual is also claiming PIO resources (another component, or a heavily customized build), and you'll need to free one up. There's no configuration workaround within this component; it's a hardware constraint of sharing a fixed number of PIO state machines.
 
-**Brightness change doesn't seem to apply instantly.** Brightness is baked into each pixel's colour value at the moment `set_pixel()` writes it, not applied globally when the panel refreshes. In practice this is invisible because the display redraws every frame (`update_interval`, default `33ms`), so a brightness change shows up on the next redraw. If you set brightness once at boot and never touch it again, this doesn't matter. If you're changing it dynamically and something else is holding the display static, that's why it looks delayed.
+**Typing runs the log full of `Unknown character` (or similar) warnings.** This comes from ESPHome's own font code, not from this component, and we can't change it: it logs an `ESP_LOGW` warning for every codepoint your font doesn't have a glyph for, on every single print call. At the default 33ms update interval with two draw calls a frame (primary and wrapped-scroll copies), typing even one unsupported character into the Home Assistant text box produces 60+ warnings a second, forever, over both UART and the API log stream. This happens because the default font glyphset is Latin-only, so anything outside it (emoji, accented characters, CJK, etc.) triggers the flood. Fix it by adding the specific characters you need to the font's `glyphs:` list in your `font:` config, or by sticking to Latin text in the entity.
+
+Example:
+
+```yaml
+font:
+  - file: "gfonts://Roboto"
+    id: sign_font
+    size: 8
+    glyphs: "!\"%()+=,-.:?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 "
+```
 
 ## Credits
 

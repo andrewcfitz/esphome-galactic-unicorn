@@ -1,3 +1,8 @@
+; Ported verbatim from pimoroni/pimoroni-pico
+; (https://github.com/pimoroni/pimoroni-pico), Pimoroni's C++ SDK for their
+; boards. MIT licensed.
+; Copyright (c) 2021 Pimoroni Ltd
+
 .program galactic_unicorn
 .side_set 1 opt
 
