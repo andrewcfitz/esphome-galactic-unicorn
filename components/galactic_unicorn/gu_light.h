@@ -32,8 +32,12 @@ class GalacticUnicornLight : public light::LightOutput, public Component {
   }
 
   Color current_color() const {
-    return Color(static_cast<uint8_t>(this->red_ * 255), static_cast<uint8_t>(this->green_ * 255),
-                 static_cast<uint8_t>(this->blue_ * 255));
+    // + 0.5f rounds to nearest instead of truncating; without it,
+    // intermediate channel values lose up to one least-significant bit
+    // (e.g. 0.502 * 255 = 128.01 truncates to 128, fine, but 0.498 * 255 =
+    // 126.99 truncates to 126 instead of rounding up to 127).
+    return Color(static_cast<uint8_t>(this->red_ * 255 + 0.5f), static_cast<uint8_t>(this->green_ * 255 + 0.5f),
+                 static_cast<uint8_t>(this->blue_ * 255 + 0.5f));
   }
 
   // True when off or dimmed all the way down. Floats rarely land on exactly

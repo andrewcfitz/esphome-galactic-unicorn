@@ -41,9 +41,13 @@ class GalacticUnicornText : public text::Text, public Component {
   // Takes the generic LightOutput* codegen hands back from
   // LightState::get_output() (the text platform only has the light
   // entity's ID, which resolves to its LightState wrapper, not directly to
-  // our GalacticUnicornLight); static_cast is safe because the `light_id`
-  // schema in text.py only accepts IDs declared by this component's own
-  // `light:` platform.
+  // our GalacticUnicornLight). cv.use_id(light.LightState) in text.py only
+  // proves the target is *some* light, not one of ours, so the static_cast
+  // below would otherwise be unsafe for a light_id pointing at a different
+  // platform (e.g. a binary or template light). Safety instead comes from
+  // text.py's FINAL_VALIDATE_SCHEMA, which inspects the fully-resolved
+  // config and rejects any light_id whose light: entry isn't
+  // platform: galactic_unicorn before this cast can ever run.
   void set_light(light::LightOutput *light) { this->light_ = static_cast<GalacticUnicornLight *>(light); }
 #endif
 
