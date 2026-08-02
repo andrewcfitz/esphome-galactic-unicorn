@@ -6,7 +6,7 @@ An ESPHome external component that drives the [Pimoroni Galactic Unicorn](https:
 
 *(photo of the panel running goes here)*
 
-> **Status: not yet hardware-verified.** This component compiles and passes CI (host unit tests, config validation, a full firmware build), but nothing in this repo has run on a physical Galactic Unicorn yet. The [Hardware smoke test checklist](#hardware-smoke-test-checklist) below is exactly the verification that's still outstanding. Treat it as unverified until someone checks every item on real hardware.
+> **Status: working on real hardware.** Verified on an original Pico W Galactic Unicorn: the panel drives correctly, WiFi stays connected alongside the PIO and DMA driver, Home Assistant discovers the text entity, and text scrolls and wraps as intended. The [Hardware smoke test checklist](#hardware-smoke-test-checklist) below is still worth running after any change to the driver.
 
 ## What this supports
 
@@ -68,7 +68,7 @@ wifi:
   password: !secret wifi_password
 
 font:
-  - file: "gfonts://Roboto"
+  - file: "gfonts://Silkscreen"
     id: sign_font
     size: 8
 
@@ -161,6 +161,34 @@ text:
 
 See `example/galactic-unicorn-color.yaml` for a full working config.
 
+## Choosing a font
+
+The panel is 53x11 pixels, which is small enough that font choice matters more
+than anything else you will configure. Ordinary text faces like Roboto are drawn
+for print and screen at much larger sizes; scaled down to 8px and rendered as
+pure on/off pixels they turn to mush. Use a font designed on a pixel grid.
+
+ESPHome accepts `.ttf`, `.woff`, `.otf`, `.bdf`, and `.pcf`, so real bitmap fonts
+work here too. `bpp` already defaults to `1`, so there is no anti-aliasing to
+turn off.
+
+Measured widths for `HELLO 123` on the full 53px width:
+
+| Font | `size:` | Text width | Glyph height | Notes |
+|---|---|---|---|---|
+| `gfonts://Silkscreen` | 8 | 48px | 5px | Crisp pixel font. Good default. |
+| `gfonts://Micro 5` | 10 | 32px | 5px | Very compact, fits about a third more text. |
+| `gfonts://VT323` | 11 | 36px | 7px | Terminal look, taller glyphs. |
+| `gfonts://Roboto` | 8 | 42px | 7px | Legible but soft edged at this size. |
+| `gfonts://Press Start 2P` | 8 | 72px | 8px | Overflows the panel, so everything scrolls. |
+
+Text wider than 53px scrolls; anything narrower is centred and static. If you
+want more words visible before scrolling starts, a narrower font buys more than
+a smaller `size:` does.
+
+Pixel fonts are usually Latin only. See the missing-glyph note under
+[Troubleshooting](#troubleshooting) before sending emoji or accented characters.
+
 ## Drawing your own content
 
 `display:` here is an ordinary ESPHome `DisplayBuffer`, so anything that works on any other ESPHome display works here: `it.print(...)`, `it.printf(...)`, `it.image(...)`, `it.line(...)`, `it.rectangle(...)`, and so on. The scrolling text entity is just one more thing you can draw. Combine it with other drawing calls in the same lambda:
@@ -234,7 +262,7 @@ Example:
 
 ```yaml
 font:
-  - file: "gfonts://Roboto"
+  - file: "gfonts://Silkscreen"
     id: sign_font
     size: 8
     glyphs: "!\"%()+=,-.:?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 "
