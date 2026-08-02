@@ -45,5 +45,9 @@ jobs:
         run: esphome config example/galactic-unicorn.yaml
       - name: Compile firmware
         run: esphome compile example/galactic-unicorn.yaml
+      - name: Validate color config
+        run: esphome config example/galactic-unicorn-color.yaml
+      - name: Compile color firmware
+        run: esphome compile example/galactic-unicorn-color.yaml
       - name: Compile smoke test config
         run: esphome compile example/pio-smoke-test.yaml

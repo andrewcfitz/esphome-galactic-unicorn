@@ -48,20 +48,31 @@ void GalacticUnicornText::draw(display::Display &it) {
         advance_accumulator(this->accumulator_, this->scroll_speed_, dt, width, this->scroll_gap_);
   }
 
+#ifdef USE_LIGHT
+  // When a light drives the colour and it's off (or dimmed to black), blank
+  // the sign. The dt measurement and accumulator advance above still ran,
+  // so the scroll position keeps ticking along underneath; turning the
+  // light back on resumes the scroll where it would have been rather than
+  // restarting it.
+  if (this->light_ != nullptr && this->light_->is_dark())
+    return;
+  const Color &color = (this->light_ != nullptr) ? this->light_->current_color() : this->color_;
+#else
+  const Color &color = this->color_;
+#endif
+
   // Vertically centre using the measured glyph height.
   const int y = (it.get_height() - height) / 2;
 
   // TOP_LEFT places the glyph origin at x, but width is the tight bounding
   // box; the visible ink actually starts at x + x_offset (the font's left
   // bearing), so subtract it to land the ink where compute_scroll intended.
-  it.print(pos.primary - x_offset, y, this->font_, this->color_, display::TextAlign::TOP_LEFT,
-           this->value_.c_str());
+  it.print(pos.primary - x_offset, y, this->font_, color, display::TextAlign::TOP_LEFT, this->value_.c_str());
   // The wrap-around copy only needs drawing once it could actually be
   // visible; skip the rasterisation work entirely while it is still off
   // the right edge of the panel.
   if (pos.has_secondary && pos.secondary < panel_width) {
-    it.print(pos.secondary - x_offset, y, this->font_, this->color_, display::TextAlign::TOP_LEFT,
-             this->value_.c_str());
+    it.print(pos.secondary - x_offset, y, this->font_, color, display::TextAlign::TOP_LEFT, this->value_.c_str());
   }
 }
 

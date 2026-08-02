@@ -126,9 +126,40 @@ Exposes a Home Assistant `text` entity backed by the panel's built-in scrolling 
 | `id` | ID | auto-generated | Referenced from a `display:` lambda as `id(sign_text)`. |
 | `name` | string | required by ESPHome's `text` base | Entity name shown in Home Assistant. |
 | `font` | ID | **required** | Must reference a `font:` entry. |
-| `color` | `[r, g, b]`, 0-255 each | `[255, 255, 255]` | Text colour. |
+| `color` | `[r, g, b]`, 0-255 each | `[255, 255, 255]` | Text colour. Ignored if `light_id` is set. |
 | `scroll_speed` | float, px/sec | `20` | Set to `0` and the text simply never scrolls, even if it overflows. |
 | `scroll_gap` | int, px | `12` | Blank pixels inserted between the end and the restart of the scroll. |
+| `light_id` | ID | none | Reference to a `light: platform: galactic_unicorn` entity (see below). When set, the light drives the text colour instead of `color`. |
+
+### `light:` (`platform: galactic_unicorn`)
+
+Exposes a Home Assistant `light` entity with a colour wheel, a brightness slider, and an on/off toggle, all bundled into ESPHome's standard RGB colour mode. It drives no LEDs directly; it just holds colour state for a `text:` entity to read via `light_id`.
+
+| Option | Type | Default | Notes |
+|---|---|---|---|
+| `id` | ID | auto-generated | Referenced from a `text:` entity's `light_id`. |
+| `name` | string | required by ESPHome's `light` base | Entity name shown in Home Assistant. |
+
+Point a `text:` entity at it with `light_id`, and the colour picker's hue becomes the text colour, the brightness slider dims it, and turning the light off blanks the sign entirely. The scroll keeps running while blanked, so turning the light back on resumes the scroll where it would have been rather than restarting it. `color:` on the `text:` entity is ignored once `light_id` is set.
+
+**ESPHome lights default `restore_mode` to `ALWAYS_OFF`.** If you don't override it, the sign comes back blank after every reboot or power cut and stays that way until someone opens Home Assistant and turns the light on, which looks like the component is broken rather than working as designed. The example config sets `restore_mode: RESTORE_DEFAULT_ON` on the `light:` entity so it restores its last state (or defaults to on if there's nothing saved yet) and the sign lights back up on its own.
+
+```yaml
+light:
+  - platform: galactic_unicorn
+    id: sign_light
+    name: "Sign Color"
+    restore_mode: RESTORE_DEFAULT_ON
+
+text:
+  - platform: galactic_unicorn
+    id: sign_text
+    name: "Sign Text"
+    font: sign_font
+    light_id: sign_light
+```
+
+See `example/galactic-unicorn-color.yaml` for a full working config.
 
 ## Drawing your own content
 
