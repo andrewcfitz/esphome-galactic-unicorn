@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import font, text
-from esphome.const import CONF_COLOR, CONF_FONT
+from esphome.components import font, light, text
+from esphome.const import CONF_COLOR, CONF_FONT, CONF_LIGHT_ID
 
 from . import galactic_unicorn_ns
 
@@ -33,6 +33,13 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_COLOR, default=[255, 255, 255]): _color,
             cv.Optional(CONF_SCROLL_SPEED, default=20.0): cv.float_range(min=0.0, max=500.0),
             cv.Optional(CONF_SCROLL_GAP, default=12): cv.int_range(min=0, max=200),
+            # Optional: when set, the light drives the text colour (and the
+            # `color:` option above is ignored). Omitting it keeps today's
+            # behaviour untouched, so existing configs need no changes.
+            # This references the light entity's own id, which resolves to
+            # its LightState wrapper (not to GalacticUnicornLight directly,
+            # which only exists internally as that wrapper's output).
+            cv.Optional(CONF_LIGHT_ID): cv.use_id(light.LightState),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -54,3 +61,7 @@ async def to_code(config):
     cg.add(var.set_color(cg.RawExpression(f"esphome::Color({r}, {g}, {b})")))
     cg.add(var.set_scroll_speed(config[CONF_SCROLL_SPEED]))
     cg.add(var.set_scroll_gap(config[CONF_SCROLL_GAP]))
+
+    if (light_id := config.get(CONF_LIGHT_ID)) is not None:
+        light_state = await cg.get_variable(light_id)
+        cg.add(var.set_light(light_state.get_output()))

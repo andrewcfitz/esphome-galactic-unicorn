@@ -20,6 +20,10 @@
 
 #include "gu_scroll.h"
 
+#ifdef USE_LIGHT
+#include "gu_light.h"
+#endif
+
 namespace esphome {
 namespace galactic_unicorn {
 
@@ -33,6 +37,15 @@ class GalacticUnicornText : public text::Text, public Component {
   void set_color(Color color) { this->color_ = color; }
   void set_scroll_speed(float px_per_second) { this->scroll_speed_ = px_per_second; }
   void set_scroll_gap(int gap) { this->scroll_gap_ = gap; }
+#ifdef USE_LIGHT
+  // Takes the generic LightOutput* codegen hands back from
+  // LightState::get_output() (the text platform only has the light
+  // entity's ID, which resolves to its LightState wrapper, not directly to
+  // our GalacticUnicornLight); static_cast is safe because the `light_id`
+  // schema in text.py only accepts IDs declared by this component's own
+  // `light:` platform.
+  void set_light(light::LightOutput *light) { this->light_ = static_cast<GalacticUnicornLight *>(light); }
+#endif
 
   // Called from the display's writer lambda once per frame.
   void draw(display::Display &it);
@@ -44,6 +57,9 @@ class GalacticUnicornText : public text::Text, public Component {
   Color color_{255, 255, 255};
   float scroll_speed_{20.0f};
   int scroll_gap_{12};
+#ifdef USE_LIGHT
+  GalacticUnicornLight *light_{nullptr};
+#endif
 
   std::string value_;
   float accumulator_{0.0f};

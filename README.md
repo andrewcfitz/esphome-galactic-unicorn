@@ -126,9 +126,37 @@ Exposes a Home Assistant `text` entity backed by the panel's built-in scrolling 
 | `id` | ID | auto-generated | Referenced from a `display:` lambda as `id(sign_text)`. |
 | `name` | string | required by ESPHome's `text` base | Entity name shown in Home Assistant. |
 | `font` | ID | **required** | Must reference a `font:` entry. |
-| `color` | `[r, g, b]`, 0-255 each | `[255, 255, 255]` | Text colour. |
+| `color` | `[r, g, b]`, 0-255 each | `[255, 255, 255]` | Text colour. Ignored if `light_id` is set. |
 | `scroll_speed` | float, px/sec | `20` | Set to `0` and the text simply never scrolls, even if it overflows. |
 | `scroll_gap` | int, px | `12` | Blank pixels inserted between the end and the restart of the scroll. |
+| `light_id` | ID | none | Reference to a `light: platform: galactic_unicorn` entity (see below). When set, the light drives the text colour instead of `color`. |
+
+### `light:` (`platform: galactic_unicorn`)
+
+Exposes a Home Assistant `light` entity with a colour wheel, a brightness slider, and an on/off toggle, all bundled into ESPHome's standard RGB colour mode. It drives no LEDs directly; it just holds colour state for a `text:` entity to read via `light_id`.
+
+| Option | Type | Default | Notes |
+|---|---|---|---|
+| `id` | ID | auto-generated | Referenced from a `text:` entity's `light_id`. |
+| `name` | string | required by ESPHome's `light` base | Entity name shown in Home Assistant. |
+
+Point a `text:` entity at it with `light_id`, and the colour picker's hue becomes the text colour, the brightness slider dims it, and turning the light off blanks the sign entirely. The scroll keeps running while blanked, so turning the light back on resumes the scroll where it would have been rather than restarting it. `color:` on the `text:` entity is ignored once `light_id` is set.
+
+```yaml
+light:
+  - platform: galactic_unicorn
+    id: sign_light
+    name: "Sign Color"
+
+text:
+  - platform: galactic_unicorn
+    id: sign_text
+    name: "Sign Text"
+    font: sign_font
+    light_id: sign_light
+```
+
+See `example/galactic-unicorn-color.yaml` for a full working config.
 
 ## Drawing your own content
 
