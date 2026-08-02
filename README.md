@@ -142,11 +142,14 @@ Exposes a Home Assistant `light` entity with a colour wheel, a brightness slider
 
 Point a `text:` entity at it with `light_id`, and the colour picker's hue becomes the text colour, the brightness slider dims it, and turning the light off blanks the sign entirely. The scroll keeps running while blanked, so turning the light back on resumes the scroll where it would have been rather than restarting it. `color:` on the `text:` entity is ignored once `light_id` is set.
 
+**ESPHome lights default `restore_mode` to `ALWAYS_OFF`.** If you don't override it, the sign comes back blank after every reboot or power cut and stays that way until someone opens Home Assistant and turns the light on, which looks like the component is broken rather than working as designed. The example config sets `restore_mode: RESTORE_DEFAULT_ON` on the `light:` entity so it restores its last state (or defaults to on if there's nothing saved yet) and the sign lights back up on its own.
+
 ```yaml
 light:
   - platform: galactic_unicorn
     id: sign_light
     name: "Sign Color"
+    restore_mode: RESTORE_DEFAULT_ON
 
 text:
   - platform: galactic_unicorn

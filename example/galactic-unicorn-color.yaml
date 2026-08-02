@@ -36,6 +36,12 @@ light:
   - platform: galactic_unicorn
     id: sign_light
     name: "Sign Color"
+    # ESPHome lights default restore_mode to ALWAYS_OFF, which would leave
+    # this sign blank after every reboot until someone opens Home Assistant
+    # and turns it back on. RESTORE_DEFAULT_ON restores the last known
+    # state, defaulting to on (full white) if there is none saved yet, so
+    # the sign comes back visible on its own.
+    restore_mode: RESTORE_DEFAULT_ON
 
 display:
   - platform: galactic_unicorn
