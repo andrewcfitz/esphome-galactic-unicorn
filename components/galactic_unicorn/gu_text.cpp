@@ -32,10 +32,12 @@ void GalacticUnicornText::draw(display::Display &it) {
   this->font_->measure(this->value_.c_str(), &width, &x_offset, &baseline, &height);
 
   const uint32_t now = millis();
+  // now and last_draw_ms_ are both uint32_t, so unsigned subtraction handles
+  // millis() rollover (~49.7 days) correctly on its own. The upper bound
+  // below guards against a stalled or very slow first frame.
   float dt = (now - this->last_draw_ms_) / 1000.0f;
   this->last_draw_ms_ = now;
-  // Guard against the first frame and against clock jumps.
-  if (dt < 0.0f || dt > 1.0f)
+  if (dt > 1.0f)
     dt = 0.0f;
 
   const int panel_width = it.get_width();
@@ -49,9 +51,14 @@ void GalacticUnicornText::draw(display::Display &it) {
   // Vertically centre using the measured glyph height.
   const int y = (it.get_height() - height) / 2;
 
-  it.print(pos.primary, y, this->font_, this->color_, display::TextAlign::TOP_LEFT, this->value_.c_str());
+  // TOP_LEFT places the glyph origin at x, but width is the tight bounding
+  // box; the visible ink actually starts at x + x_offset (the font's left
+  // bearing), so subtract it to land the ink where compute_scroll intended.
+  it.print(pos.primary - x_offset, y, this->font_, this->color_, display::TextAlign::TOP_LEFT,
+           this->value_.c_str());
   if (pos.has_secondary) {
-    it.print(pos.secondary, y, this->font_, this->color_, display::TextAlign::TOP_LEFT, this->value_.c_str());
+    it.print(pos.secondary - x_offset, y, this->font_, this->color_, display::TextAlign::TOP_LEFT,
+             this->value_.c_str());
   }
 }
 
