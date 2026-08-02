@@ -1,0 +1,49 @@
+esphome:
+  name: galactic-unicorn
+  friendly_name: Galactic Unicorn
+
+external_components:
+  - source:
+      type: local
+      path: ../components
+
+rp2040:
+  board: rpipicow
+
+logger:
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+font:
+  - file: "gfonts://Roboto"
+    id: sign_font
+    size: 8
+
+galactic_unicorn:
+  id: unicorn
+  brightness: 0.5
+
+display:
+  - platform: galactic_unicorn
+    id: unicorn_display
+    update_interval: 33ms
+    lambda: |-
+      id(sign_text)->draw(it);
+
+text:
+  - platform: galactic_unicorn
+    id: sign_text
+    name: "Sign Text"
+    font: sign_font
+    color: [255, 180, 0]
+    scroll_speed: 20
+    scroll_gap: 12

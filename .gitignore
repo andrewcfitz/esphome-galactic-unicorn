@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.venv/
+.esphome/
+tests/build/
+example/secrets.yaml
+example/.esphome/
+example/build/

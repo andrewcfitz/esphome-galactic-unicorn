@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  unit-tests:
+    name: Host unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install asset tooling
+        run: pip install pytest adafruit-circuitpython-pioasm
+      - name: Verify generated assets match upstream
+        run: python -m pytest tests/test_assets.py -v
+      - name: Build and run scroll tests
+        run: |
+          mkdir -p tests/build
+          g++ -std=c++17 -Wall -Wextra -Werror -o tests/build/test_scroll tests/test_scroll.cpp
+          ./tests/build/test_scroll
+
+  compile:
+    name: ESPHome compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ESPHome
+        run: pip install esphome==2026.7.3
+      - name: Generate CI secrets
+        run: |
+          cat > example/secrets.yaml <<'EOF'
+          wifi_ssid: "ci-ssid"
+          wifi_password: "ci-password-placeholder"
+          api_encryption_key: "bXlfc2VjdXJlX2tleV9mb3JfY2lfb25seV8xMjM0NTY="
+          EOF
+      - name: Validate config
+        run: esphome config example/galactic-unicorn.yaml
+      - name: Compile firmware
+        run: esphome compile example/galactic-unicorn.yaml
+      - name: Compile smoke test config
+        run: esphome compile example/pio-smoke-test.yaml
